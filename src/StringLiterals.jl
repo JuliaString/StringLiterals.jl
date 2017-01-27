@@ -237,7 +237,7 @@ function s_interp_parse(s::AbstractString, unescape::Function, p::Function)
                     _, j = parse(s, k, greedy=false)
                     # This is a bit hacky, and probably doesn't perform as well as it could,
                     # but it works! Same below.
-                    str = string("(fmt", s[k:j-1], ')')
+                    str = string("(StringLiterals.fmt", s[k:j-1], ')')
                 else
                     # Move past %, c should point to letter
                     beg = k
@@ -248,7 +248,7 @@ function s_interp_parse(s::AbstractString, unescape::Function, p::Function)
                         s[k] == '(' && break
                     end
                     _, j = parse(s, k, greedy=false)
-                    str = string("(Format.cfmt(\"", s[beg-1:k-1], "\",", s[k+1:j-1], ")")
+                    str = string("(StringLiterals.cfmt(\"", s[beg-1:k-1], "\",", s[k+1:j-1], ')')
                 end
                 ex, _ = parse(str, 1, greedy=false)
                 isa(ex, Expr) && (ex.head === :continue) &&
@@ -270,13 +270,16 @@ function s_interp_parse(s::AbstractString, unescape::Function, p::Function)
                         throw_arg_err("\\{ missing closing } in ", s)
                     c, k = next(s, k)
                 end
-                c != '(' &&
+                done(s, k) &&
                     throw(ParseError("Missing (expr) in Python format expression"))
+                c, k = next(s, k)
+                c != '(' &&
+                    throw(ParseError("Missing (expr) in Python format expression: $c"))
                 # Need to find end to parse to
-                _, j = parse(s, k, greedy=false)
+                _, j = parse(s, k-1, greedy=false)
                 # This is a bit hacky, and probably doesn't perform as well as it could,
                 # but it works! Same below.
-                str = string("(Format.pyfmt", s[k:j-1], ')')
+                str = string("(StringLiterals.pyfmt(\"", s[beg:k-3], "\",", s[k:j-1], ')')
                 ex, _ = parse(str, 1, greedy=false)
                 isa(ex, Expr) && (ex.head === :continue) &&
                     throw(ParseError("Incomplete expression"))

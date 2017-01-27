@@ -1,6 +1,6 @@
 The StringLiterals.jl package is licensed under the MIT "Expat" License:
 
-> Copyright (c) 2017: ScottPJones.
+> Copyright (c) 2017: Gandalf Software, Inc. (Scott Paul Jones) and other contributors
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal

@@ -26,39 +26,39 @@ Finally, there are uppercase versions of the macros, which also supports the leg
 This uses a fork of the https://github.com/JuliaIO/Formatting.jl package to provide formatting capability, as well as Tom Breloff's PR https://github.com/JuliaIO/Formatting.jl/pull/10, which provides the capability of using settable printing defaults based on the types of the argument.
 The formatting code has been extensively modified, see https://github.com/JuliaString/Format.jl.
 
-`\` can be followed by: 0, $, ", ', \, a, b, e, f, n, r, t, u, v, N, %, (, <, {, : or &.
+* `\` can be followed by: 0, $, ", ', \, a, b, e, f, n, r, t, u, v, N, %, (, <, {, : or &.
 In the legacy modes, x and U are also allowed after the `\`.
 Unlike standard Julia string literals, unsupported characters give an error (as in Swift).
 
-`\0` outputs a nul byte (0x00) (note: as in Swift, octal sequences are not supported, just the nul byte)
-`\a` outputs the "alarm" or "bell" control code (0x07)
-`\b` outputs the "backspace" control code (0x08)
-`\e` outputs the "escape" control code (0x1b)
-`\f` outputs the "formfeed" control code (0x0c)
-`\n` outputs the "newline" or "linefeed" control code (0x0a)
-`\r` outputs the "return" (carriage return) control code (0x0d)
-`\t` outputs the "tab" control code (0x09)
-`\v` outputs the "vertical tab" control code (0x0b)
+* `\0` outputs a nul byte (0x00) (note: as in Swift, octal sequences are not supported, just the nul byte)
+* `\a` outputs the "alarm" or "bell" control code (0x07)
+* `\b` outputs the "backspace" control code (0x08)
+* `\e` outputs the "escape" control code (0x1b)
+* `\f` outputs the "formfeed" control code (0x0c)
+* `\n` outputs the "newline" or "linefeed" control code (0x0a)
+* `\r` outputs the "return" (carriage return) control code (0x0d)
+* `\t` outputs the "tab" control code (0x09)
+* `\v` outputs the "vertical tab" control code (0x0b)
 
-`\u{<hexdigits>}` is used to represent a Unicode character, with 1-6 hex digits.
-`\<` followed by a LaTeX entity name followed by `>` outputs that character or sequence if the name is valid.
-`\:` followed by an Emoji name followed by `:` outputs that character or sequence (if a valid name)
-`\&` followed by an HTML entity name followed by `;` outputs that character or sequence (if a valid name)
-`\N{` followed by a Unicode entity name (case-insensitive!) followed by a `}` outputs that Unicode character (if a valid name)
+* `\u{<hexdigits>}` is used to represent a Unicode character, with 1-6 hex digits.
+* `\<` followed by a LaTeX entity name followed by `>` outputs that character or sequence if the name is valid.
+* `\:` followed by an Emoji name followed by `:` outputs that character or sequence (if a valid name)
+* `\&` followed by an HTML entity name followed by `;` outputs that character or sequence (if a valid name)
+* `\N{` followed by a Unicode entity name (case-insensitive!) followed by a `}` outputs that Unicode character (if a valid name)
 
-`\(expression)` simply interpolates the value of the expression, the same as `$(expression)` in standard Julia string literals.
-`\%<ccc><formatcode>(arguments)` is interpolated as a call to `cfmt("<cccc><formatcode>",arguments)`, where <ccc><formatcode> is a C-style format string.
+* `\(expression)` simply interpolates the value of the expression, the same as `$(expression)` in standard Julia string literals.
+* `\%<ccc><formatcode>(arguments)` is interpolated as a call to `cfmt("<cccc><formatcode>",arguments)`, where `<ccc><formatcode>` is a C-style format string.
 
-`\%(arguments)` is interpolated as a call to `fmt(arguments)`.
+* `\%(arguments)` is interpolated as a call to `fmt(arguments)`.
 This is especially useful when defaults have been set for the type of the first argument.
 
-`fmt_default!{T}(::Type{T}, syms::Symbol...; kwargs...)` sets the defaults for a particular type.
-`fmt_default!(syms::Symbol...; kwargs...)` sets the defaults for all types.
-Symbols that can currently be used are: `:ljust` or `:left`, `:rjust` or `:right`, `:commas`,
-`:zpad` or `:zeropad`, and `:ipre` or `:prefix`.
-`reset!{T}(::Type{T})` resets the defaults for a particular type.
-`defaultSpec(x)` will return the defaults for the type of x, and
-`defaultSpec{T}(::Type{T})` will return the defaults for the given type.
+* `fmt_default!{T}(::Type{T}, syms::Symbol...; kwargs...)` sets the defaults for a particular type.
+* `fmt_default!(syms::Symbol...; kwargs...)` sets the defaults for all types.
+
+Symbols that can currently be used are: `:ljust` or `:left`, `:rjust` or `:right`, `:commas`, `:zpad` or `:zeropad`, and `:ipre` or `:prefix`.
+* `reset!{T}(::Type{T})` resets the defaults for a particular type.
+* `defaultSpec(x)` will return the defaults for the type of x, and
+* `defaultSpec{T}(::Type{T})` will return the defaults for the given type.
 
 There is currently support for Python style formatting, although that is a work-in-progress,
 and I am intending to improve the syntax to make it as close as possible to Python's 3.6 format strings.

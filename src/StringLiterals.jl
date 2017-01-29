@@ -5,7 +5,7 @@ String literals with Swift-like format
 C and Python like formatting
 LaTex, Emoji, HTML, and Unicode names
 
-Copyright 2016 Gandalf Software, Inc., Scott P. Jones
+Copyright 2016-2017 Gandalf Software, Inc., Scott P. Jones
 Licensed under MIT License, see LICENSE.md
 """
 module StringLiterals
@@ -19,20 +19,31 @@ using LaTeX_Entities, HTML_Entities, Unicode_Entities, Emoji_Entities
 include("fixstrings.jl")
 using .FixStrings
 
-export @f_str, @sinterpolate
+export @f_str, @F_str, @sinterpolate, @pr_str, @PR_str, @pr, @PR
 export s_unescape_string, s_escape_string, s_print_unescaped, s_print_escaped
 
 """
 String macro with more Swift-like syntax, plus support for emojis and LaTeX names
 """
-macro f_str(str) ; s_interp_parse(str) ; end
+macro f_str(str) ; s_interp_parse(false, str) ; end
+
+"""
+String macro with more Swift-like syntax, plus support for emojis and LaTeX names, also legacy
+"""
+macro F_str(str) ; s_interp_parse(true, str) ; end
+
+"""
+String macros that calls print directly
+"""
+macro pr_str(str) ; s_print(false, str) ; end
+macro PR_str(str) ; s_print(true, str) ; end
 
 """
 Interpolates one or more strings using more Swift-like syntax
 julia> x = "World"; @sinterpolate "Hello \\(x)"
 "Hello World"
 """
-macro sinterpolate(args...) ; s_interp_parse(args...) ; end
+macro sinterpolate(args...) ; s_interp_parse(false, args...) ; end
 
 throw_arg_err(msg, s) = throw(ArgumentError(string(msg, repr(s))))
 
@@ -47,6 +58,7 @@ function s_parse_unicode(io, s,  i)
         throw_arg_err("\\u missing opening { in ", s)
     done(s,i) &&
         throw_arg_err("Incomplete \\u{...} in ", s)
+    beg = i
     c, i = next(s, i)
     n::UInt32 = 0
     k = 0
@@ -64,7 +76,7 @@ function s_parse_unicode(io, s,  i)
     k == 0 &&
         throw_arg_err("\\u{} has no hex digits in ", s)
     ((0x0d800 <= n <= 0x0dfff) || n > 0x10ffff) &&
-        throw_arg_err("Invalid Unicode character constant ", s)
+        throw_arg_err("Invalid Unicode character constant ", s[beg-3:i-1])
     print(io, Char(n))
     i
 end
@@ -100,7 +112,7 @@ function s_parse_latex(io, s,  i)
     end
     latexstr = LaTeX_Entities.lookupname(s[beg:i-2])
     latexstr == "" &&
-        throw_arg_err("Invalid LaTex name in ", s)
+        throw_arg_err("Invalid LaTeX name in ", s)
     print(io, latexstr)
     i
 end
@@ -149,28 +161,38 @@ function s_parse_uniname(io, s,  i)
 end
 
 """
+String interpolation parsing, allow legacy \$, \\xHH, \\uHHHH, \\UHHHHHHHH
+"""
+s_print_unescaped_legacy(io, s::AbstractString) = s_print_unescaped(io, s, true)
+
+"""
 String interpolation parsing
 Based on code resurrected from Julia base:
 https://github.com/JuliaLang/julia/blob/deab8eabd7089e2699a8f3a9598177b62cbb1733/base/string.jl
 """
-function s_print_unescaped(io, s::AbstractString)
+function s_print_unescaped(io, s::AbstractString, flg::Bool=false)
     i = start(s)
     while !done(s,i)
         c, i = next(s,i)
         if !done(s,i) && c == '\\'
             c, i = next(s,i)
             if c == 'u'
-                i = s_parse_unicode(io, s, i)
+                i = flg ? s_parse_unicode_legacy(io, s, i, c) : s_parse_unicode(io, s, i)
             elseif c == ':'	# Emoji
                 i = s_parse_emoji(io, s, i)
             elseif c == '&'	# HTML
                 i = s_parse_html(io, s, i)
-            elseif c == '<'	# LaTex
+            elseif c == '<'	# LaTeX
                 i = s_parse_latex(io, s, i)
             elseif c == 'N'	# Unicode name
                 i = s_parse_uniname(io, s, i)
+            elseif flg && c == 'U'
+                i = s_parse_unicode_legacy(io, s, i, c)
+            elseif flg && c == 'x' # hex byte
+                i = s_parse_hex_legacy(io, s, i)
             else
                 c = (c == '0' ? '\0' :
+                     c == '$' ? '$'  :
                      c == '"' ? '"'  :
                      c == '\'' ? '\'' :
                      c == '\\' ? '\\' :
@@ -191,6 +213,48 @@ function s_print_unescaped(io, s::AbstractString)
     end
 end
 
+function s_parse_unicode_legacy(io, s, i, c)
+    done(s, i) &&
+        error("\\$c used with no following hex digits")
+    beg = i
+    m = (c == 'u' ? 4 : 8)
+    if s[i] == '{'
+        m == 4 || error("{ only allowed with \\u")
+        return s_parse_unicode(io, s, i)
+    end
+    n = k = 0
+    while (k += 1) <= m && !done(s,i)
+        c, j = next(s,i)
+        n = '0' <= c <= '9' ? n<<4 + c-'0' :
+            'a' <= c <= 'f' ? n<<4 + c-'a'+10 :
+            'A' <= c <= 'F' ? n<<4 + c-'A'+10 : break
+        i = j
+    end
+    ((0x0d800 <= n <= 0x0dfff) || n > 0x10ffff) &&
+        throw_arg_err("Invalid Unicode character constant ", s[beg-2:i-1])
+    print(io, Char(n))
+    i
+end
+
+hexerr() = error("\\x used with no following hex digits")
+function s_parse_hex_legacy(io, s, i)
+    done(s,i) && hexerr()
+    c, i = next(s,i)
+    n = '0' <= c <= '9' ? c-'0' :
+        'a' <= c <= 'f' ? c-'a'+10 :
+        'A' <= c <= 'F' ? c-'A'+10 : hexerr()
+    if done(s,i)
+        write(io, UInt8(n))
+        return i
+    end
+    c, j = next(s,i)
+    n = '0' <= c <= '9' ? n<<4 + c-'0' :
+        'a' <= c <= 'f' ? n<<4 + c-'a'+10 :
+        'A' <= c <= 'F' ? n<<4 + c-'A'+10 : (j = i; n)
+    write(io, UInt8(n))
+    j
+end
+
 s_unescape_string(s::AbstractString) = sprint(endof(s), s_print_unescaped, s)
 
 function s_print_escaped(io, s::AbstractString, esc::AbstractString)
@@ -209,12 +273,33 @@ end
 
 s_escape_string(s::AbstractString) = sprint(endof(s), s_print_escaped, s, "\"")
 
-function s_interp_parse(s::AbstractString, unescape::Function, p::Function)
+s_print(flg::Bool, s::AbstractString) = s_print(flg, s, flg ? s_unescape_str : s_unescape_legacy)
+function s_print(flg::Bool, s::AbstractString, unescape::Function)
+    sx = s_interp_parse_vec(flg, s, unescape)
+    (length(sx) == 1 && isa(sx[1], ByteStr)
+     ? Expr(:call, :print, sx[1])
+     : Expr(:call, :print, sx...))
+end
+
+function s_interp_parse(flg::Bool, s::AbstractString, unescape::Function, p::Function)
+    sx = s_interp_parse_vec(flg, s, unescape)
+    length(sx) == 1 && isa(sx[1], ByteStr) ? sx[1] : Expr(:call, :sprint, p, sx...)
+end
+
+function s_interp_parse_vec(flg::Bool, s::AbstractString, unescape::Function)
     sx = []
     i = j = start(s)
     while !done(s, j)
         c, k = next(s, j)
-        if c == '\\' && !done(s, k)
+        if c == '$'
+            isempty(s[i:j-1]) ||
+                push!(sx, unescape(s[i:j-1]))
+            ex, j = parse(s, k, greedy=false)
+            isa(ex,Expr) && ex.head === :continue &&
+                throw(ParseError("incomplete expression"))
+            push!(sx, esc(ex))
+            i = j
+        elseif c == '\\' && !done(s, k)
             if s[k] == '('
                 # Handle interpolation
                 isempty(s[i:j-1]) ||
@@ -285,6 +370,10 @@ function s_interp_parse(s::AbstractString, unescape::Function, p::Function)
                     throw(ParseError("Incomplete expression"))
                 push!(sx, esc(ex))
                 i = j
+            elseif s[k] == '$'
+                isempty(s[i:j-1]) ||
+                    push!(sx, unescape(s[i:j-1]))
+                i = k
             else
                 j = k
             end
@@ -294,13 +383,20 @@ function s_interp_parse(s::AbstractString, unescape::Function, p::Function)
     end
     isempty(s[i:end]) ||
         push!(sx, unescape(s[i:j-1]))
-    length(sx) == 1 && isa(sx[1], ByteStr) ? sx[1] : Expr(:call, :sprint, p, sx...)
+    sx
 end
 
-s_interp_parse(s::AbstractString, u::Function) = s_interp_parse(s, u, print)
-s_interp_parse(s::AbstractString) =
-    s_interp_parse(s, x -> (isvalid(UTF8Str, s_unescape_string(x))
-                            ? s_unescape_string(x)
-                            : throw(ArgumentError("Invalid UTF-8 sequence"))))
+function s_unescape_str(s)
+    s = sprint(endof(s), s_print_unescaped, s)
+    isvalid(UTF8Str, s) ? s : throw(ArgumentError("Invalid UTF-8 sequence"))
+end
+function s_unescape_legacy(s)
+    s = sprint(endof(s), s_print_unescaped_legacy, s)
+    isvalid(UTF8Str, s) ? s : throw(ArgumentError("Invalid UTF-8 sequence"))
+end
+
+s_interp_parse(flg::Bool, s::AbstractString, u::Function) = s_interp_parse(flg, s, u, print)
+s_interp_parse(flg::Bool, s::AbstractString) =
+    s_interp_parse(flg, s, flg ? s_unescape_legacy : s_unescape_str)
 
 end # module

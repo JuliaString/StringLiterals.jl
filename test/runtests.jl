@@ -433,7 +433,7 @@ end
     scott = 123
     pr"\(io)This is a test with \(scott)"
     @static if VERSION < v"0.6-"
-        output = takebuf_string!(io)
+        output = takebuf_string(io)
     else
         output = String(take!(io))
     end

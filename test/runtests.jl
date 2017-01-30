@@ -413,3 +413,29 @@ end
         @test f"\%'s(1234567.0)" == "1.234567e6"
     end # testset test commas
 end
+
+@testset "Legacy support" begin
+    @testset "Unicode constants" begin
+        @test F"\u3"     == "\x03"
+        @test F"\uf60"   == "\u0f60"
+        @test F"\u2a7d"  == "\u2a7d"
+        @test F"\U1f595" == "\U0001f595"
+    end
+    @testset "Interpolation" begin
+        scott = 123
+        @test F"$scott" == "123"
+        @test F"$(scott+1)" == "124"
+    end
+end
+
+@testset "Print macro support" begin
+    io = IOBuffer()
+    scott = 123
+    pr"\(io)This is a test with \(scott)"
+    @static if VERSION < v"0.6-"
+        output = takebuf_string!(io)
+    else
+        output = String(take!(io))
+    end
+    @test output == "This is a test with 123"
+end

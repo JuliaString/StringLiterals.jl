@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/JuliaString/StringLiterals.jl.svg?branch=master)](https://travis-ci.org/JuliaString/StringLiterals.jl)
 
-[![Coverage Status](https://coveralls.io/repos/JuliaString/StringLiterals.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaString/StringLiterals.jl?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/JuliaString/StringLiterals.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaString/StringLiterals.jl?branch=master)
 
 [![codecov.io](http://codecov.io/github/JuliaString/StringLiterals.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaString/StringLiterals.jl?branch=master)
 

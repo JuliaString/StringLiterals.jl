@@ -66,6 +66,57 @@ end
     end
 end
 
+@testset "Legacy mode only sequences" begin
+    # Check for ones allowed in legacy mode
+    for s in ("f\"\\x\"", "f\"\\x7f\"", "f\"\\u\"", "f\"\\U\"", "f\"\\U{123}\"")
+        @test_throws ArgumentError eval(parse(s))
+    end
+end
+
+@testset "Legacy mode Hex constants" begin
+    @test F"\x3"     == "\x03"
+    @test F"\x7f"    == "\x7f"
+    @test_throws ArgumentError eval(parse("F\"\\x\""))
+    @test_throws ArgumentError eval(parse("F\"\\x!\""))
+end
+
+@testset "Legacy mode Unicode constants" begin
+    @test F"\u3"     == "\x03"
+    @test F"\uf60"   == "\u0f60"
+    @test F"\u2a7d"  == "\u2a7d"
+    @test F"\U1f595" == "\U0001f595"
+    @test F"\u{1f595}" == "\U0001f595"
+    @test_throws ArgumentError eval(parse("F\"\\U\""))
+    @test_throws ArgumentError eval(parse("F\"\\U!\""))
+    @test_throws ArgumentError eval(parse("F\"\\U{123}\""))
+end
+
+@testset "Legacy mode valid quoted characters" begin
+    @test f"\$" == "\$"
+    @test f"\"" == "\""
+    @test f"\'" == "\'"
+    @test f"\\" == "\\"
+    @test f"\0" == "\0"
+    @test f"\a" == "\a"
+    @test f"\b" == "\b"
+    @test f"\e" == "\e"
+    @test f"\f" == "\f"
+    @test f"\n" == "\n"
+    @test f"\r" == "\r"
+    @test f"\t" == "\t"
+    @test f"\v" == "\v"
+end
+
+@testset "Legacy mode \$ interpolation" begin
+    scott = 123
+    @test F"$scott" == "123"
+    @test F"$(scott+1)" == "124"
+end
+
+@testset "Quoted \$ in Legacy mode" begin
+    @test F"I have \$10, \$spj\$" == "I have \$10, \$spj\$"
+end
+
 @testset "C Formatting" begin
     @testset "int" begin
         @test f"\%d(typemax(Int64))" == "9223372036854775807"
@@ -425,52 +476,6 @@ end
         @test f"\%'s(1000.0)" == "1,000.0"
         @test f"\%'s(1234567.0)" == "1.234567e6"
     end # testset test commas
-end
-
-@testset "Legacy mode only sequences" begin
-    # Check for ones allowed in legacy mode
-    for s in ("f\"\\x\"", "f\"\\x7f\"", "f\"\\u\"", "f\"\\U\"", "f\"\\U{123}\"")
-        @test_throws ArgumentError eval(parse(s))
-    end
-end
-
-@testset "Legacy support" begin
-    @testset "Hex constants" begin
-        @test F"\x3"     == "\x03"
-        @test F"\x7f"    == "\x7f"
-        @test_throws ArgumentError eval(parse("F\"\\x\""))
-        @test_throws ArgumentError eval(parse("F\"\\x!\""))
-    end
-    @testset "Unicode constants" begin
-        @test F"\u3"     == "\x03"
-        @test F"\uf60"   == "\u0f60"
-        @test F"\u2a7d"  == "\u2a7d"
-        @test F"\U1f595" == "\U0001f595"
-        @test F"\u{1f595}" == "\U0001f595"
-        @test_throws ArgumentError eval(parse("F\"\\U\""))
-        @test_throws ArgumentError eval(parse("F\"\\U!\""))
-        @test_throws ArgumentError eval(parse("F\"\\U{123}\""))
-    end
-    @testset "Valid quoted characters" begin
-        @test f"\$" == "\$"
-        @test f"\"" == "\""
-        @test f"\'" == "\'"
-        @test f"\\" == "\\"
-        @test f"\0" == "\0"
-        @test f"\a" == "\a"
-        @test f"\b" == "\b"
-        @test f"\e" == "\e"
-        @test f"\f" == "\f"
-        @test f"\n" == "\n"
-        @test f"\r" == "\r"
-        @test f"\t" == "\t"
-        @test f"\v" == "\v"
-    end
-    @testset "Interpolation" begin
-        scott = 123
-        @test F"$scott" == "123"
-        @test F"$(scott+1)" == "124"
-    end
 end
 
 @testset "Print macro support" begin

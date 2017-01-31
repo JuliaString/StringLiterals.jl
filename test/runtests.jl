@@ -2,6 +2,12 @@ using StringLiterals
 using Format
 using Base.Test
 
+@static if VERSION < v"0.6-"
+    ts(io) = takebuf_string(io)
+else
+    ts(io) = String(take!(io))
+end
+
 @testset "LaTeX Entities" begin
     @test f"\<dagger>" == "†"
     @test f"\<mscrl>" == "𝓁" # \U1f4c1
@@ -33,7 +39,11 @@ end
     scott = 123
     @test f"\(scott)" == "123"
 end
+@testset "\$ not interpolation" begin
+    @test f"I have $10, $spj$" == "I have \$10, \$spj\$"
+end
 @testset "Valid quoted characters" begin
+    @test f"\$" == "\$"
     @test f"\"" == "\""
     @test f"\'" == "\'"
     @test f"\\" == "\\"
@@ -49,6 +59,9 @@ end
 end
 @testset "Invalid quoted characters" begin
     for ch in "cdghijklmopqsuwxy"
+        @test_throws ArgumentError eval(parse(string("f\"\\", ch, '"')))
+    end
+    for ch in 'A':'Z'
         @test_throws ArgumentError eval(parse(string("f\"\\", ch, '"')))
     end
 end
@@ -210,7 +223,7 @@ end
         @test f"\%-8s(s1)" == "test    "
 
         # This was broken in v0.5
-        @static if VERSION >= v"0.6-dev"
+        @static if VERSION >= v"0.6-"
             @test f"\%8.3s(s1)"    == "     tes"
             @test f"\%#8.3s(s1)"   == "     \"te"
             @test f"\%-8.3s(s1)"   == "tes     "
@@ -414,12 +427,44 @@ end
     end # testset test commas
 end
 
+@testset "Legacy mode only sequences" begin
+    # Check for ones allowed in legacy mode
+    for s in ("f\"\\x\"", "f\"\\x7f\"", "f\"\\u\"", "f\"\\U\"", "f\"\\U{123}\"")
+        @test_throws ArgumentError eval(parse(s))
+    end
+end
+
 @testset "Legacy support" begin
+    @testset "Hex constants" begin
+        @test F"\x3"     == "\x03"
+        @test F"\x7f"    == "\x7f"
+        @test_throws ArgumentError eval(parse("F\"\\x\""))
+        @test_throws ArgumentError eval(parse("F\"\\x!\""))
+    end
     @testset "Unicode constants" begin
         @test F"\u3"     == "\x03"
         @test F"\uf60"   == "\u0f60"
         @test F"\u2a7d"  == "\u2a7d"
         @test F"\U1f595" == "\U0001f595"
+        @test F"\u{1f595}" == "\U0001f595"
+        @test_throws ArgumentError eval(parse("F\"\\U\""))
+        @test_throws ArgumentError eval(parse("F\"\\U!\""))
+        @test_throws ArgumentError eval(parse("F\"\\U{123}\""))
+    end
+    @testset "Valid quoted characters" begin
+        @test f"\$" == "\$"
+        @test f"\"" == "\""
+        @test f"\'" == "\'"
+        @test f"\\" == "\\"
+        @test f"\0" == "\0"
+        @test f"\a" == "\a"
+        @test f"\b" == "\b"
+        @test f"\e" == "\e"
+        @test f"\f" == "\f"
+        @test f"\n" == "\n"
+        @test f"\r" == "\r"
+        @test f"\t" == "\t"
+        @test f"\v" == "\v"
     end
     @testset "Interpolation" begin
         scott = 123
@@ -432,10 +477,18 @@ end
     io = IOBuffer()
     scott = 123
     pr"\(io)This is a test with \(scott)"
-    @static if VERSION < v"0.6-"
-        output = takebuf_string(io)
-    else
-        output = String(take!(io))
-    end
-    @test output == "This is a test with 123"
+    @test ts(io) == "This is a test with 123"
+end
+
+@testset "escape, unescape" begin
+    @test s_escape_string(f"' \" \\ \u{7f} \u{20ac} \u{1f596} \u{e0000}") ==
+        "' \\\" \\\\ \\u{7f} € 🖖 \\u{e0000}"
+    @test s_unescape_string("' \\\" \\\\ \\u{7f} € 🖖 \\u{e0000}") ==
+        "' \" \\ \x7f € 🖖 \Ue0000"
+    io = IOBuffer()
+    s_print_escaped(io, f"' \" \\ \u{7f} \u{20ac} \u{1f596} \u{e0000}", "")
+    @test ts(io) == "' \" \\\\ \\u{7f} € 🖖 \\u{e0000}"
+    io = IOBuffer()
+    s_print_unescaped(io, f"' \" \\\\ \\u{7f} € 🖖 \\u{e0000}")
+    @test ts(io) == "' \" \\ \x7f € 🖖 \Ue0000"
 end

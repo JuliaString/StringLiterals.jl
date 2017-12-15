@@ -16,11 +16,20 @@ using Format
 
 using LaTeX_Entities, HTML_Entities, Unicode_Entities, Emoji_Entities
 
-include("fixstrings.jl")
-using .FixStrings
-
 export @f_str, @F_str, @sinterpolate, @pr_str, @PR_str, @pr, @PR
 export s_unescape_string, s_escape_string, s_print_unescaped, s_print_escaped
+
+@static if VERSION < v"0.7.0-DEV.2995"
+    const _parse = parse
+    const _ParseError = ParseError
+    _sprint(f, s) = sprint(endof(s), f, s)
+    _sprint(f, s, c) = sprint(endof(s), f, s, c)
+else
+    const _parse = Meta.parse
+    const _ParseError = Base.Meta.ParseError
+    _sprint(f, s) = sprint(f, s; sizehint=endof(s))
+    _sprint(f, s, c) = sprint(f, s, c; sizehint=endof(s))
+end
 
 """
 String macro with more Swift-like syntax, plus support for emojis and LaTeX names
@@ -258,7 +267,7 @@ function s_parse_hex_legacy(io, s, i)
     j
 end
 
-s_unescape_string(s::AbstractString) = sprint(endof(s), s_print_unescaped, s)
+s_unescape_string(s::AbstractString) = _sprint(s_print_unescaped, s)
 
 function s_print_escaped(io, s::AbstractString, esc::AbstractString)
     i = start(s)
@@ -274,19 +283,21 @@ function s_print_escaped(io, s::AbstractString, esc::AbstractString)
     end
 end
 
-s_escape_string(s::AbstractString) = sprint(endof(s), s_print_escaped, s, "\"")
+s_escape_string(s::AbstractString) = _sprint(s_print_escaped, s, '\"')
+
+const ByteStr = String
 
 s_print(flg::Bool, s::AbstractString) = s_print(flg, s, flg ? s_unescape_str : s_unescape_legacy)
 function s_print(flg::Bool, s::AbstractString, unescape::Function)
     sx = s_interp_parse_vec(flg, s, unescape)
-    (length(sx) == 1 && isa(sx[1], ByteStr)
+    (length(sx) == 1 && isa(sx[1], String)
      ? Expr(:call, :print, sx[1])
      : Expr(:call, :print, sx...))
 end
 
 function s_interp_parse(flg::Bool, s::AbstractString, unescape::Function, p::Function)
     sx = s_interp_parse_vec(flg, s, unescape)
-    length(sx) == 1 && isa(sx[1], ByteStr) ? sx[1] : Expr(:call, :sprint, p, sx...)
+    length(sx) == 1 && isa(sx[1], String) ? sx[1] : Expr(:call, :sprint, p, sx...)
 end
 
 function s_interp_parse_vec(flg::Bool, s::AbstractString, unescape::Function)
@@ -299,22 +310,22 @@ function s_interp_parse_vec(flg::Bool, s::AbstractString, unescape::Function)
                 # Handle interpolation
                 isempty(s[i:j-1]) ||
                     push!(sx, unescape(s[i:j-1]))
-                ex, j = parse(s, k, greedy=false)
+                ex, j = _parse(s, k, greedy=false)
                 isa(ex, Expr) && (ex.head === :continue) &&
-                    throw(ParseError("Incomplete expression"))
+                    throw(_ParseError("Incomplete expression"))
                 push!(sx, esc(ex))
                 i = j
             elseif s[k] == '%'
                 # Move past \\, c should point to '%'
                 c, k = next(s, k)
-                done(s, k) && throw(ParseError("Incomplete % expression"))
+                done(s, k) && throw(_ParseError("Incomplete % expression"))
                 # Handle interpolation
                 if !isempty(s[i:j-1])
                     push!(sx, unescape(s[i:j-1]))
                 end
                 if s[k] == '('
                     # Need to find end to parse to
-                    _, j = parse(s, k, greedy=false)
+                    _, j = _parse(s, k, greedy=false)
                     # This is a bit hacky, and probably doesn't perform as well as it could,
                     # but it works! Same below.
                     str = string("(StringLiterals.fmt", s[k:j-1], ')')
@@ -324,22 +335,22 @@ function s_interp_parse_vec(flg::Bool, s::AbstractString, unescape::Function)
                     while true
                         c, k = next(s, k)
                         done(s, k) &&
-                            throw(ParseError("Incomplete % expression"))
+                            throw(_ParseError("Incomplete % expression"))
                         s[k] == '(' && break
                     end
-                    _, j = parse(s, k, greedy=false)
+                    _, j = _parse(s, k, greedy=false)
                     str = string("(StringLiterals.cfmt(\"", s[beg-1:k-1], "\",", s[k+1:j-1], ')')
                 end
-                ex, _ = parse(str, 1, greedy=false)
+                ex, _ = _parse(str, 1, greedy=false)
                 isa(ex, Expr) && (ex.head === :continue) &&
-                    throw(ParseError("Incomplete expression"))
+                    throw(_ParseError("Incomplete expression"))
                 push!(sx, esc(ex))
                 i = j
             elseif s[k] == '{'
                 # Move past \\, c should point to '{'
                 c, k = next(s, k)
                 done(s, k) &&
-                    throw(ParseError("Incomplete {...} Python format expression"))
+                    throw(_ParseError("Incomplete {...} Python format expression"))
                 # Handle interpolation
                 isempty(s[i:j-1]) ||
                     push!(sx, unescape(s[i:j-1]))
@@ -351,18 +362,18 @@ function s_interp_parse_vec(flg::Bool, s::AbstractString, unescape::Function)
                     c, k = next(s, k)
                 end
                 done(s, k) &&
-                    throw(ParseError("Missing (expr) in Python format expression"))
+                    throw(_ParseError("Missing (expr) in Python format expression"))
                 c, k = next(s, k)
                 c != '(' &&
-                    throw(ParseError(string("Missing (expr) in Python format expression: ", c)))
+                    throw(_ParseError(string("Missing (expr) in Python format expression: ", c)))
                 # Need to find end to parse to
-                _, j = parse(s, k-1, greedy=false)
+                _, j = _parse(s, k-1, greedy=false)
                 # This is a bit hacky, and probably doesn't perform as well as it could,
                 # but it works! Same below.
                 str = string("(StringLiterals.pyfmt(\"", s[beg:k-3], "\",", s[k:j-1], ')')
-                ex, _ = parse(str, 1, greedy=false)
+                ex, _ = _parse(str, 1, greedy=false)
                 isa(ex, Expr) && (ex.head === :continue) &&
-                    throw(ParseError("Incomplete expression"))
+                    throw(_ParseError("Incomplete expression"))
                 push!(sx, esc(ex))
                 i = j
             elseif flg && s[k] == '$'
@@ -377,9 +388,9 @@ function s_interp_parse_vec(flg::Bool, s::AbstractString, unescape::Function)
         elseif flg && c == '$'
             isempty(s[i:j-1]) ||
                 push!(sx, unescape(s[i:j-1]))
-            ex, j = parse(s, k, greedy=false)
+            ex, j = _parse(s, k, greedy=false)
             isa(ex,Expr) && ex.head === :continue &&
-                throw(ParseError("incomplete expression"))
+                throw(_ParseError("incomplete expression"))
             push!(sx, esc(ex))
             i = j
         else
@@ -392,12 +403,12 @@ function s_interp_parse_vec(flg::Bool, s::AbstractString, unescape::Function)
 end
 
 function s_unescape_str(s)
-    s = sprint(endof(s), s_print_unescaped, s)
-    isvalid(UTF8Str, s) ? s : throw_arg_err("Invalid UTF-8 sequence")
+    s = s_unescape_string(s)
+    isvalid(String, s) ? s : throw_arg_err("Invalid UTF-8 sequence")
 end
 function s_unescape_legacy(s)
-    s = sprint(endof(s), s_print_unescaped_legacy, s)
-    isvalid(UTF8Str, s) ? s : throw_arg_err("Invalid UTF-8 sequence")
+    s = _sprint(s_print_unescaped_legacy, s)
+    isvalid(String, s) ? s : throw_arg_err("Invalid UTF-8 sequence")
 end
 
 s_interp_parse(flg::Bool, s::AbstractString, u::Function) = s_interp_parse(flg, s, u, print)

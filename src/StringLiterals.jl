@@ -5,7 +5,8 @@ String literals with Swift-like format
 C and Python like formatting
 LaTex, Emoji, HTML, and Unicode names
 
-Copyright 2016-2017 Gandalf Software, Inc., Scott P. Jones
+Copyright 2016-2018 Gandalf Software, Inc., Scott P. Jones
+Portions originally from code in Julia, copyright Julia contributors
 Licensed under MIT License, see LICENSE.md
 """
 module StringLiterals
@@ -284,6 +285,8 @@ function s_print_escaped(io, s::AbstractString, esc::AbstractString)
 end
 
 s_escape_string(s::AbstractString) = _sprint(s_print_escaped, s, '\"')
+
+s_print_escaped(io, s::AbstractString, esc::Char) = s_print_escaped(io, s, (esc, ))
 
 const ByteStr = String
 

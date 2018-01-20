@@ -1,12 +1,9 @@
 using StringLiterals
 using Format
-using Base.Test
 
-@static if VERSION < v"0.6-"
-    ts(io) = takebuf_string(io)
-else
-    ts(io) = String(take!(io))
-end
+@static VERSION < v"0.7.0-DEV" ? (using Base.Test) : (using Test)
+
+ts(io) = String(take!(io))
 
 @testset "LaTeX Entities" begin
     @test f"\<dagger>" == "†"
@@ -488,11 +485,11 @@ end
 @testset "escape, unescape" begin
     @test s_escape_string(f"' \" \\ \u{7f} \u{20ac} \u{1f596} \u{e0000}") ==
         "' \\\" \\\\ \\u{7f} € 🖖 \\u{e0000}"
-    @test s_unescape_string("' \\\" \\\\ \\u{7f} € 🖖 \\u{e0000}") ==
+    @test s_unescape_string(f"' \\\" \\\\ \\u{7f} € 🖖 \\u{e0000}") ==
         "' \" \\ \x7f € 🖖 \Ue0000"
     io = IOBuffer()
     s_print_escaped(io, f"' \" \\ \u{7f} \u{20ac} \u{1f596} \u{e0000}", "")
-    @test ts(io) == "' \" \\\\ \\u{7f} € 🖖 \\u{e0000}"
+    @test ts(io) == f"' \" \\\\ \\u{7f} € 🖖 \\u{e0000}"
     io = IOBuffer()
     s_print_unescaped(io, f"' \" \\\\ \\u{7f} € 🖖 \\u{e0000}")
     @test ts(io) == "' \" \\ \x7f € 🖖 \Ue0000"

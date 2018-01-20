@@ -270,7 +270,7 @@ end
 
 s_unescape_string(s::AbstractString) = _sprint(s_print_unescaped, s)
 
-function s_print_escaped(io, s::AbstractString, esc::AbstractString)
+function s_print_escaped(io, s::AbstractString, esc::Union{AbstractString, Char})
     i = start(s)
     while !done(s,i)
         c, i = next(s, i)
@@ -285,8 +285,6 @@ function s_print_escaped(io, s::AbstractString, esc::AbstractString)
 end
 
 s_escape_string(s::AbstractString) = _sprint(s_print_escaped, s, '\"')
-
-s_print_escaped(io, s::AbstractString, esc::Char) = s_print_escaped(io, s, (esc, ))
 
 const ByteStr = String
 

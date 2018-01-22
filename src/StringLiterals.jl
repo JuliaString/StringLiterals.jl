@@ -15,7 +15,7 @@ using Format
 #export FormatSpec, FormatExpr, printfmt, printfmtln, format, generate_formatter
 #export pyfmt, cfmt, fmt, fmt_default, fmt_default!, reset!, defaultSpec
 
-using LaTeX_Entities, HTML_Entities, Unicode_Entities, Emoji_Entities
+using StrTables, LaTeX_Entities, HTML_Entities, Unicode_Entities, Emoji_Entities
 
 export @f_str, @F_str, @sinterpolate, @pr_str, @PR_str, @pr, @PR
 export s_unescape_string, s_escape_string, s_print_unescaped, s_print_escaped
@@ -103,7 +103,7 @@ function s_parse_emoji(io, s,  i)
             throw_arg_err("\\: missing closing : in ", s)
         c, i = next(s, i)
     end
-    emojistr = Emoji_Entities.lookupname(s[beg:i-2])
+    emojistr = lookupname(Emoji_Entities.default, s[beg:i-2])
     emojistr == "" &&
         throw_arg_err("Invalid Emoji name in ", s)
     print(io, emojistr)
@@ -121,7 +121,7 @@ function s_parse_latex(io, s,  i)
             throw_arg_err("\\< missing closing > in ", s)
         c, i = next(s, i)
     end
-    latexstr = LaTeX_Entities.lookupname(s[beg:i-2])
+    latexstr = lookupname(LaTeX_Entities.default, s[beg:i-2])
     latexstr == "" &&
         throw_arg_err("Invalid LaTeX name in ", s)
     print(io, latexstr)
@@ -139,7 +139,7 @@ function s_parse_html(io, s,  i)
             throw_arg_err("\\& missing ending ; in ", s)
         c, i = next(s, i)
     end
-    htmlstr = HTML_Entities.lookupname(s[beg:i-2])
+    htmlstr = lookupname(HTML_Entities.default, s[beg:i-2])
     htmlstr == "" &&
         throw_arg_err("Invalid HTML name in ", s)
     print(io, htmlstr)
@@ -164,7 +164,7 @@ function s_parse_uniname(io, s,  i)
             throw_arg_err("\\N{ missing closing } in ", s)
         c, i = next(s, i)
     end
-    unistr = Unicode_Entities.lookupname(s[beg:i-2])
+    unistr = lookupname(Unicode_Entities.default, s[beg:i-2])
     unistr == "" &&
         throw_arg_err("Invalid Unicode name in ", s)
     print(io, unistr)

@@ -2,6 +2,7 @@ using StringLiterals
 using Format
 
 @static VERSION < v"0.7.0-DEV" ? (using Base.Test) : (using Test)
+eval_parse(s) = eval((@static VERSION < v"0.7.0-DEV.2995" ? parse : Meta.parse)(s))
 
 ts(io) = String(take!(io))
 
@@ -56,25 +57,25 @@ end
 end
 @testset "Invalid quoted characters" begin
     for ch in "cdghijklmopqsuwxy"
-        @test_throws ArgumentError eval(parse(string("f\"\\", ch, '"')))
+        @test_throws ArgumentError eval_parse(string("f\"\\", ch, '"'))
     end
     for ch in 'A':'Z'
-        @test_throws ArgumentError eval(parse(string("f\"\\", ch, '"')))
+        @test_throws ArgumentError eval_parse(string("f\"\\", ch, '"'))
     end
 end
 
 @testset "Legacy mode only sequences" begin
     # Check for ones allowed in legacy mode
     for s in ("f\"\\x\"", "f\"\\x7f\"", "f\"\\u\"", "f\"\\U\"", "f\"\\U{123}\"")
-        @test_throws ArgumentError eval(parse(s))
+        @test_throws ArgumentError eval_parse(s)
     end
 end
 
 @testset "Legacy mode Hex constants" begin
     @test F"\x3"     == "\x03"
     @test F"\x7f"    == "\x7f"
-    @test_throws ArgumentError eval(parse("F\"\\x\""))
-    @test_throws ArgumentError eval(parse("F\"\\x!\""))
+    @test_throws ArgumentError eval_parse("F\"\\x\"")
+    @test_throws ArgumentError eval_parse("F\"\\x!\"")
 end
 
 @testset "Legacy mode Unicode constants" begin
@@ -83,9 +84,9 @@ end
     @test F"\u2a7d"  == "\u2a7d"
     @test F"\U1f595" == "\U0001f595"
     @test F"\u{1f595}" == "\U0001f595"
-    @test_throws ArgumentError eval(parse("F\"\\U\""))
-    @test_throws ArgumentError eval(parse("F\"\\U!\""))
-    @test_throws ArgumentError eval(parse("F\"\\U{123}\""))
+    @test_throws ArgumentError eval_parse("F\"\\U\"")
+    @test_throws ArgumentError eval_parse("F\"\\U!\"")
+    @test_throws ArgumentError eval_parse("F\"\\U{123}\"")
 end
 
 @testset "Legacy mode valid quoted characters" begin

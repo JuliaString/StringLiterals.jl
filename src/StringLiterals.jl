@@ -20,7 +20,7 @@ using StrTables, LaTeX_Entities, HTML_Entities, Unicode_Entities, Emoji_Entities
 export @f_str, @F_str, @sinterpolate, @pr_str, @PR_str, @pr, @PR
 export s_unescape_string, s_escape_string, s_print_unescaped, s_print_escaped
 
-@static if VERSION < v"0.7.0-DEV.2995"
+@static if VERSION < v"0.7.0-DEV"
     const _parse = parse
     const _ParseError = ParseError
     _sprint(f, s) = sprint(endof(s), f, s)
@@ -28,8 +28,8 @@ export s_unescape_string, s_escape_string, s_print_unescaped, s_print_escaped
 else
     const _parse = Meta.parse
     const _ParseError = Base.Meta.ParseError
-    _sprint(f, s) = sprint(f, s; sizehint=endof(s))
-    _sprint(f, s, c) = sprint(f, s, c; sizehint=endof(s))
+    _sprint(f, s) = sprint(f, s; sizehint=lastindex(s))
+    _sprint(f, s, c) = sprint(f, s, c; sizehint=lastindex(s))
 end
 
 """

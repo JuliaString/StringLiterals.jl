@@ -9,7 +9,8 @@ ts(io) = String(take!(io))
 
 @testset "LaTeX Entities" begin
     @test f"\<dagger>" == "†"
-    @test f"\<mscrl>" == "𝓁" # \U1f4c1
+    #@test f"\<mscrl>" == "𝓁" # \U1f4c1
+    @test f"\<c_l>" == "𝓁" # \U1f4c1
     @test f"\<nleqslant>" == "⩽̸" # \u2a7d\u338
 end
 @testset "Emoji Entities" begin

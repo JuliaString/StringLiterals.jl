@@ -25,11 +25,13 @@ export s_unescape_string, s_escape_string, s_print_unescaped, s_print_escaped
     const _ParseError = ParseError
     _sprint(f, s) = sprint(endof(s), f, s)
     _sprint(f, s, c) = sprint(endof(s), f, s, c)
+    const outhex = hex
 else
     const _parse = Meta.parse
     const _ParseError = Base.Meta.ParseError
     _sprint(f, s) = sprint(f, s; sizehint=lastindex(s))
     _sprint(f, s, c) = sprint(f, s, c; sizehint=lastindex(s))
+    outhex(c, p=1) = string(UInt32(c), base=16, pad=p)
 end
 
 """
@@ -280,7 +282,7 @@ function s_print_escaped(io, s::AbstractString, esc::Union{AbstractString, Char}
         c in esc        ? print(io, '\\', c) :
         '\a' <= c <= '\r' ? print(io, '\\', "abtnvfr"[Int(c)-6]) :
         isprint(c)      ? print(io, c) :
-                          print(io, "\\u{", hex(c), "}")
+                          print(io, "\\u{", outhex(c), "}")
     end
 end
 

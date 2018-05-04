@@ -20,7 +20,7 @@ git:
 # uncomment the following lines to override the default test script
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone("https://github.com/JuliaString/StrTables.jl.git"); Pkg.clone("https://github.com/JuliaString/LaTeX_Entities.jl.git"); Pkg.clone("https://github.com/JuliaString/Emoji_Entities.jl.git"); Pkg.clone("https://github.com/JuliaString/HTML_Entities.jl.git"); Pkg.clone("https://github.com/JuliaString/Unicode_Entities.jl.git"); Pkg.clone("https://github.com/JuliaString/Format.jl.git"); Pkg.clone(pwd()); Pkg.add("LightXML"); Pkg.add("JSON"); Pkg.build("LaTeX_Entities"); Pkg.build("Emoji_Entities"); Pkg.build("HTML_Entities"); Pkg.build("Unicode_Entities"); Pkg.build("StringLiterals"); Pkg.test("StringLiterals"; coverage=true)'
+  - julia -e 'p="https://github.com/JuliaString"; s=".jl.git"; l="_Entities"; Pkg.clone("$p/StrTables$s"); t=("LaTeX","Emoji","HTML","Unicode"); for n in t; Pkg.clone("$p/$n$l$s"); end;  Pkg.clone("$p/Format$s"); Pkg.clone(pwd()); Pkg.add("LightXML"); Pkg.add("JSON"); for n in t; Pkg.build("$n$l"); end; Pkg.test("StringLiterals"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("StringLiterals")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'

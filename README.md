@@ -1,9 +1,10 @@
 # StringLiterals
 
+[![StringLiterals](http://pkg.julialang.org/badges/StringLiterals_0.6.svg)](http://pkg.julialang.org/detail/StringLiterals)
+[![StringLiterals](http://pkg.julialang.org/badges/StringLiterals_0.7.svg)](http://pkg.julialang.org/detail/StringLiterals)
 [![Build Status](https://travis-ci.org/JuliaString/StringLiterals.jl.svg?branch=master)](https://travis-ci.org/JuliaString/StringLiterals.jl)
 
 [![Coverage Status](https://coveralls.io/repos/github/JuliaString/StringLiterals.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaString/StringLiterals.jl?branch=master)
-
 [![codecov.io](http://codecov.io/github/JuliaString/StringLiterals.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaString/StringLiterals.jl?branch=master)
 
 The StringLiterals package is an attempt to bring a cleaner string literal syntax to Julia, as well as having an easier way of producing formatted strings, borrowing from both Python and C formatted printing syntax.  It also adds support for using LaTex, Emoji, HTML, or Unicode entity names that are looked up at compile-time.

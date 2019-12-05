@@ -34,6 +34,12 @@ else
     outhex(c, p=1) = string(UInt32(c), base=16, pad=p)
 end
 
+@static if VERSION >= v"1.0.0"
+    const next = iterate
+    start(iter) = 1
+    done(iter, state) = iterate(iter, state) === nothing
+end
+
 """
 String macro with more Swift-like syntax, plus support for emojis and LaTeX names
 """
